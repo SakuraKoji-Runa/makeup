@@ -1,0 +1,66 @@
+batch_size: 32
+iters: 80000
+
+train_dataset:
+  type: Dataset
+  dataset_root: /home/aistudio/data/data184438/CelebAMask-HQ
+  train_path: /home/aistudio/data/data184438/CelebAMask-HQ/train.txt
+  num_classes: 19
+  mode: train
+  transforms:
+    - type: ResizeStepScaling
+      min_scale_factor: 0.5
+      max_scale_factor: 1.5
+      scale_step_size: 0.1
+    - type: RandomPaddingCrop
+      crop_size: [512, 512]
+    - type: RandomDistort
+      brightness_range: 0.5
+      contrast_range: 0.5
+      saturation_range: 0.5
+    - type: Normalize
+      mean: [ 0.485, 0.456, 0.406 ]
+      std: [ 0.229, 0.224, 0.225 ]
+
+val_dataset:
+  type: Dataset
+  dataset_root: /home/aistudio/data/data184438/CelebAMask-HQ
+  val_path: /home/aistudio/data/data184438/CelebAMask-HQ/val.txt
+  num_classes: 19
+  mode: val
+
+  transforms:
+    - type: Normalize
+      mean: [ 0.485, 0.456, 0.406 ]
+      std: [ 0.229, 0.224, 0.225 ]
+
+model:
+  type: PPLiteSeg
+  backbone:
+    type: STDC1
+    pretrained: https://bj.bcebos.com/paddleseg/dygraph/PP_STDCNet1.tar.gz
+  arm_out_chs: [32, 64, 128]
+  seg_head_inter_chs: [32, 64, 64]
+
+optimizer:
+  type: sgd
+  momentum: 0.9
+  weight_decay: 0.0005
+
+loss:
+  types:
+    - type: OhemCrossEntropyLoss
+      min_kept: 520000   # batch_size * 512 * 512 // 16
+    - type: OhemCrossEntropyLoss
+      min_kept: 520000
+    - type: OhemCrossEntropyLoss
+      min_kept: 520000
+  coef: [1, 1, 1]
+
+lr_scheduler:
+  type: PolynomialDecay
+  learning_rate: 0.01
+  end_lr: 0.0
+  power: 0.9
+  warmup_iters: 1000
+  warmup_start_lr: 1.0e-5
